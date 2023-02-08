@@ -16,18 +16,18 @@ import numpy as np
 script_dir = pathlib.Path(__file__).parent.absolute()
 # model_file = os.path.join(script_dir, 'quadrotor-tiny-two-sensors-no-rnn-final-model_quantized_edgetpu.tflite')
 
-model_file = os.path.join(script_dir, 'quadrotor-tiny-two-sensors-no-rnn-final-model_unquantized.tflite')
+model_file = os.path.join(script_dir, "models", 'quadrotor-tiny-two-sensors-no-rnn-final-model_quantized_edgetpu.tflite')
 
 #label_file = os.path.join(script_dir, 'imagenet_labels.txt')
 #image_file = os.path.join(script_dir, 'parrot.jpg')
 
 
 # run_dir = "runs/quadrotor-tiny-two-sensors-final-test-seed-42-terrain-dev"
-run_dir = "../"
+run_dir = "./"
 obsv_data_entry = None
 hidden_state_entry = None
 run_dir = Path(run_dir)
-obsv_data_dir = run_dir / 'obsv_logs'
+obsv_data_dir = run_dir / 'data'
 
 if obsv_data_entry is None:
     #find latest one
@@ -65,8 +65,10 @@ def rep_dataset():
         yield {'input': X[0]} #, 'h0': hs[0,0], 'c0': hs[1,0]}
 
 # Initialize the TF interpreter
-# interpreter = edgetpu.make_interpreter(model_file)
-interpreter = Interpreter(model_file)
+print("creating interpreter")
+interpreter = edgetpu.make_interpreter(model_file)
+# interpreter = Interpreter(model_file)
+print("allocating tensors")
 interpreter.allocate_tensors()
 
 # Resize the image
@@ -74,16 +76,20 @@ interpreter.allocate_tensors()
 # image = Image.open(image_file).convert('RGB').resize(size, Image.ANTIALIAS)
 
 # Run an inference
+print("creating dataset")
 dataset = rep_dataset()
 
+print("getting input from dataset")
 X = next(dataset)['input']
 
 print(X.shape)
 
 # Get input and output tensors.
+print("getting input details")
 input_details = interpreter.get_input_details()
+print("getting output details")
 output_details = interpreter.get_output_details()
-
+print("finding inpu shape")
 # common.set_input(interpreter, X)
 input_shape = input_details[0]['shape']
 

@@ -4,19 +4,19 @@ Output: quadrotor-tiny-two-sensors-no-rnn-final-model_quantized_edgetpu.tflite
 
 Operator                       Count      Status
 
-SUB                            1          Mapped to Edge TPU
-STRIDED_SLICE                  2          Mapped to Edge TPU
-MINIMUM                        1          Mapped to Edge TPU
-QUANTIZE                       4          Operation is otherwise supported, but not mapped due to some unspecified limitation
-QUANTIZE                       4          Mapped to Edge TPU
-TRANSPOSE                      2          Mapped to Edge TPU
-CONCATENATION                  1          Mapped to Edge TPU
+RESHAPE                        1          Tensor has unsupported rank (up to 3 innermost dimensions mapped)
+RESHAPE                        4          Mapped to Edge TPU
 FULLY_CONNECTED                7          Mapped to Edge TPU
 GATHER                         2          Tensor has unsupported rank (up to 3 innermost dimensions mapped)
-MAXIMUM                        1          Mapped to Edge TPU
-DEQUANTIZE                     4          Operation is working on an unsupported data type
-CONV_2D                        6          Mapped to Edge TPU
 MUL                            1          Mapped to Edge TPU
+CONV_2D                        6          Mapped to Edge TPU
+DEQUANTIZE                     4          Operation is working on an unsupported data type
+MINIMUM                        1          Mapped to Edge TPU
+MAXIMUM                        1          Mapped to Edge TPU
+STRIDED_SLICE                  2          Mapped to Edge TPU
+CONCATENATION                  1          Mapped to Edge TPU
+SUB                            1          Mapped to Edge TPU
+TRANSPOSE                      2          Mapped to Edge TPU
+QUANTIZE                       4          Operation is otherwise supported, but not mapped due to some unspecified limitation
+QUANTIZE                       4          Mapped to Edge TPU
 ELU                            4          Operation is working on an unsupported data type
-RESHAPE                        4          Mapped to Edge TPU
-RESHAPE                        1          Tensor has unsupported rank (up to 3 innermost dimensions mapped)

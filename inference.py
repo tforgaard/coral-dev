@@ -75,9 +75,9 @@ interpreter.allocate_tensors()
 print("creating dataset")
 dataset = rep_dataset()
 
-# Model must be uint8 quantized
-if common.input_details(interpreter, 'dtype') != np.uint8:
-    raise ValueError('Only support uint8 input type.')
+# Model must be int8 quantized
+if common.input_details(interpreter, 'dtype') != np.int8:
+    raise ValueError('Only support int8 input type.')
 
 
 # Get input and output tensors.
@@ -112,15 +112,15 @@ def preprocess_input(X):
     if abs(scale * std - 1) < 1e-5 and abs(mean - zero_point) < 1e-5:
         # Input data does not require preprocessing.
         # common.set_input(interpreter, image)
-        interpreter.set_tensor(input_details[0]['index'], X.astype(np.uint8))
+        interpreter.set_tensor(input_details[0]['index'], X.astype(np.int8))
     else:
         print("preprocessing data")
         # Input data requires preprocessing
         normalized_input = (np.asarray(X) - mean) / (std * scale) + zero_point
         np.clip(normalized_input, 0, 255, out=normalized_input)
-        # common.set_input(interpreter, normalized_input.astype(np.uint8))
+        # common.set_input(interpreter, normalized_input.astype(np.int8))
 
-        interpreter.set_tensor(input_details[0]['index'], normalized_input.astype(np.uint8))
+        interpreter.set_tensor(input_details[0]['index'], normalized_input.astype(np.int8))
 
 # output_params = common.output_details(interpreter, 'quantization_parameters')
 output_params = output_details[0]['quantization_parameters']

@@ -15,7 +15,8 @@ import time
 
 # Specify the TensorFlow model, labels, and image
 script_dir = pathlib.Path(__file__).parent.absolute()
-model_file = os.path.join(script_dir, "models", 'quadrotor-tiny-two-sensors-no-rnn-final-model_quantized_edgetpu.tflite')
+# model_file = os.path.join(script_dir, "models", 'quadrotor-tiny-two-sensors-no-rnn-final-model_quantized_edgetpu.tflite')
+model_file = os.path.join(script_dir, "models", 'quadrotor-tiny-two-sensors-relu-no-rnn-model', 'tflite', 'model_int8_edgetpu.tflite')
 
 
 # run_dir = "runs/quadrotor-tiny-two-sensors-final-test-seed-42-terrain-dev"

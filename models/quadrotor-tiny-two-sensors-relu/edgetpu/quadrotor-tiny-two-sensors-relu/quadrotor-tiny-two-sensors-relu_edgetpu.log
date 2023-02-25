@@ -1,0 +1,18 @@
+Edge TPU Compiler version 16.0.384591198
+Input: export/quadrotor-tiny-two-sensors-relu/tflite/quadrotor-tiny-two-sensors-relu.tflite
+Output: export/quadrotor-tiny-two-sensors-relu/edgetpu/quadrotor-tiny-two-sensors-relu/quadrotor-tiny-two-sensors-relu_edgetpu.tflite
+
+Operator                       Count      Status
+
+GATHER                         2          Tensor has unsupported rank (up to 3 innermost dimensions mapped)
+MUL                            1          Mapped to Edge TPU
+CONV_2D                        6          Mapped to Edge TPU
+MINIMUM                        1          Mapped to Edge TPU
+MAXIMUM                        1          Mapped to Edge TPU
+STRIDED_SLICE                  2          Mapped to Edge TPU
+CONCATENATION                  1          Mapped to Edge TPU
+RESHAPE                        1          Tensor has unsupported rank (up to 3 innermost dimensions mapped)
+RESHAPE                        4          Mapped to Edge TPU
+SUB                            1          Mapped to Edge TPU
+FULLY_CONNECTED                7          Mapped to Edge TPU
+TRANSPOSE                      2          Mapped to Edge TPU

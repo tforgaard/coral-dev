@@ -8,7 +8,7 @@ from pathlib import Path
 
 from utils.utils import load_rep_dataset, create_dummy_input
 
-def infer_torch(model_path):
+def infer_torch(model_path, include_hidden=False):
     print('Torchscript Inference')
     print('==========================')
     print()
@@ -40,9 +40,6 @@ def infer_torch(model_path):
 
     input_names =('input', 'inp', 'inp0')
 
-    include_hidden = False
-
-
     for model, model_name in zip((net, net_pre_freezed, net_post_freezed, net_opt_inf, net_opt_mobile), ("traced", "pre_freezed", "post_freezed", "opt inf", "opt mobile")):
 
         dummy_model_input = create_dummy_input(include_hidden=include_hidden, tensor=True, input_names=input_names)
@@ -71,5 +68,6 @@ def infer_torch(model_path):
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--model_path")
+    parser.add_argument("--include_hidden", action="store_true")
     args = parser.parse_args()
     infer_torch(**vars(args))

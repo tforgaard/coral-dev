@@ -2,9 +2,19 @@
 
 from pathlib import Path
 import numpy as np
-
+import onnxruntime as ort
 
 DEFAULT_INPUT_NAMES = ('input', 'h0', 'c0')
+
+def print_session_options(so):
+    print(f"onnx session options")
+    print('==========================')   
+    print(f"execution mode: {so.execution_mode}")
+    print(f"intra op num threads: {so.intra_op_num_threads}")
+    print(f"inter op num threads: {so.inter_op_num_threads}")
+    print(f"graph optimization level: {so.graph_optimization_level}")
+
+    print()
 
 def create_dummy_input(size=1, include_hidden=False, tensor=False, input_names=None, shapes=None, seed=None):
 
@@ -90,7 +100,8 @@ def load_rep_dataset(dataset_dir = None, include_hidden=False, debug=False, tens
         N = obsv_data.shape[0] # * obsv_data.shape[1]
         # obsv_data_ind = np.random.choice(obsv_data.shape[0],N,replace=False)
         obsv_data_ind = np.array(list(range(N)))
-        print(obsv_data_ind.shape)
+        if debug:
+            print(obsv_data_ind.shape)
         
         for i in range(N):
             X = np.expand_dims(obsv_data[obsv_data_ind[i]],axis=1)

@@ -2,9 +2,10 @@
 import time
 import numpy as np
 import onnxruntime as ort
+from argparse import ArgumentParser
 #import onnx
 
-from utils.utils import load_rep_dataset
+from utils.utils import load_rep_dataset, create_dummy_input
 
 def infer_onnxruntime(model_path):
     print('Onnxruntime Inference')
@@ -13,7 +14,6 @@ def infer_onnxruntime(model_path):
 
     #onnx_model = onnx.load(model_path)
     #onnx.checker.check_model(onnx_model)
-
 
 
     so = ort.SessionOptions()
@@ -33,21 +33,16 @@ def infer_onnxruntime(model_path):
         print(input_info)
 
     # TODO: use input_info...
-    include_hidden = False
-    dummy_model_input = {'input': np.zeros((1, 145)).astype(np.float32)}
+    
+    include_hidden = True if len(ort_session_input_info) == 3 else False
+    
+    dummy_model_input = create_dummy_input(include_hidden=include_hidden, tensor=False)
 
-    if len(ort_session_input_info) == 3:
-        include_hidden = True
-        dummy_model_input = {**dummy_model_input, 
-                            'h0': np.zeros((1,1, 256)).astype(np.float32),
-                            'c0': np.zeros((1,1, 256)).astype(np.float32)}
         
-
     dataset = load_rep_dataset(include_hidden=include_hidden,debug=True)
 
-
     #warm up run
-    ort_outs = ort_session.run(None,dummy_model_input)
+    ort_outs = ort_session.run(None,next(dummy_model_input))
     # ort_outs = io_binding.copy_outputs_to_cpu()
 
 
@@ -69,4 +64,7 @@ def infer_onnxruntime(model_path):
 
 
 if __name__ == "__main__":
-    infer_onnxruntime("./models/quadrotor-tiny-two-sensors-final/onnx/quadrotor-tiny-two-sensors-final.onnx")
+    parser = ArgumentParser()
+    parser.add_argument("--model_path")
+    args = parser.parse_args()
+    infer_onnxruntime(**vars(args))

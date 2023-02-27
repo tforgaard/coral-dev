@@ -3,7 +3,42 @@
 from pathlib import Path
 import numpy as np
 
-def load_rep_dataset(dataset_dir = None, include_hidden=True, debug=False):
+
+DEFAULT_INPUT_NAMES = ('input', 'h0', 'c0')
+
+def create_dummy_input(size=1, include_hidden=False, tensor=False, input_names=None, shapes=None, seed=None):
+
+    # shapes: tuple of tuples
+
+    np.random.seed(seed)
+
+    if tensor:
+        import torch
+
+    if input_names is None:
+        input_names = DEFAULT_INPUT_NAMES
+
+
+    for i in range(size):
+
+        dummy_model_input = {input_names[0]: np.random.rand(1, 145).astype(np.float32)}
+
+        if include_hidden:
+            dummy_model_input = {**dummy_model_input, 
+                                input_names[1]: np.zeros((1,1, 256)).astype(np.float32),
+                                input_names[2]: np.zeros((1,1, 256)).astype(np.float32)}
+
+        if tensor:
+            for k,v in dummy_model_input.items():
+                dummy_model_input[k] = torch.from_numpy(v)
+
+        yield dummy_model_input
+
+
+def load_rep_dataset(dataset_dir = None, include_hidden=False, debug=False, tensor=False, input_names=None):
+
+    if tensor:
+        import torch
 
     if dataset_dir is None:
         #TODO fix this
@@ -44,6 +79,9 @@ def load_rep_dataset(dataset_dir = None, include_hidden=True, debug=False):
         print(f"hidden mean: {np.mean(hidden_data)}")
         print()
 
+    if input_names is None:
+        input_names = DEFAULT_INPUT_NAMES
+
     def rep_dataset():
         """Generator function to produce representative dataset for post-training quantization."""
 
@@ -57,11 +95,16 @@ def load_rep_dataset(dataset_dir = None, include_hidden=True, debug=False):
         for i in range(N):
             X = np.expand_dims(obsv_data[obsv_data_ind[i]],axis=1)
             hs = np.expand_dims(np.expand_dims(hidden_data[obsv_data_ind[i]],axis=2),axis=2)
+            
+            if tensor:
+                X = torch.from_numpy(X)
+                hs = torch.from_numpy(hs)
+
             if include_hidden:
                 #TODO: standardize naming
-                yield {'input': X[0], 'h0': hs[0,0], 'c0': hs[1,0]}
+                yield {input_names[0]: X[0], input_names[1]: hs[0,0], input_names[2]: hs[1,0]}
             else:
-                yield {'input': X[0]}
+                yield {input_names[0]: X[0]}
         
 
     return rep_dataset

@@ -1,14 +1,13 @@
 
-import time
-import numpy as np
-import torch
+
 from argparse import ArgumentParser
-from inspect import signature
 from pathlib import Path
 
 import onnxruntime as ort
+import numpy as np
+import torch
 
-from utils.utils import load_rep_dataset, create_dummy_input, DEFAULT_INPUT_NAMES
+from utils.utils import load_rep_dataset, DEFAULT_INPUT_NAMES, parse_outputs
 
 def infer_torch(model_dir, interpreters, include_hidden=False, torch_type=None, onnx_quantize_dyn=False):
     print('Inference Assertion')
@@ -89,6 +88,21 @@ def infer_torch(model_dir, interpreters, include_hidden=False, torch_type=None, 
                                   'run_model':  lambda x : model_onnx.run(None,x),
                                   'input_names': DEFAULT_INPUT_NAMES}
 
+    if "tf" in interpreters: # Does not work for some reason...
+
+        import tensorflow as tf
+
+        model_path_tf = str(model_dir / "tf" / f"{model_dir.name}")
+        model_tf = tf.keras.models.load_model(model_path_tf)
+
+        dataset_tf = load_rep_dataset(include_hidden=include_hidden,debug=True, hidden_shape=(1,1,None))
+
+        inference_dict['tf'] = {'dataset': dataset_tf(), 
+                                  'model': model_tf,
+                                  'run_model':  lambda x : model_tf(**x),
+                                  'input_names': DEFAULT_INPUT_NAMES}
+
+
     rtol = 1e-10
     atol = 1e-10
 
@@ -112,9 +126,8 @@ def infer_torch(model_dir, interpreters, include_hidden=False, torch_type=None, 
 
             model_out = model_dict['run_model'](data)
             prev_outputs[model_name] = model_out # with correct datatype
-            if isinstance(model_out[0],torch.Tensor):
-                model_out = [out.detach().numpy() for out in model_out]
-            model_outs.append(model_out)
+
+            model_outs.append(parse_outputs(model_out))
 
             #TODO: compare prev hidden states with true hidden states?
 
@@ -126,6 +139,9 @@ def infer_torch(model_dir, interpreters, include_hidden=False, torch_type=None, 
                 for i in range(j+1,len(model_outs)):
                     for out_j, out_i in zip(model_outs[j],model_outs[i]):
                         try:
+                            if out_j.shape != out_i.shape:
+                                print("ERROR: shape mismatch!")
+                                break
                             np.testing.assert_allclose(out_j, out_i, rtol=rtol, atol=atol)
                         except AssertionError as e:
                             print(e)

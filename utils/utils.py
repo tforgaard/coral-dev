@@ -6,6 +6,21 @@ import onnxruntime as ort
 
 DEFAULT_INPUT_NAMES = ('input', 'h0', 'c0')
 
+import torch
+import tensorflow as tf
+
+def parse_outputs(model_out):
+    if isinstance(model_out, dict):
+        model_out = [v for _,v in model_out.items()]
+    
+    if isinstance(model_out,tf.Tensor) or (isinstance(model_out, tuple) and isinstance(model_out[0],tf.Tensor)):
+        model_out = [out.numpy() for out in model_out]
+
+    if isinstance(model_out,torch.Tensor) or (isinstance(model_out, tuple) and isinstance(model_out[0],torch.Tensor)):
+        model_out = [out.detach().numpy() for out in model_out]
+
+    return model_out
+
 def print_session_options(so):
     print(f"onnx session options")
     print('==========================')   
@@ -45,7 +60,7 @@ def create_dummy_input(size=1, include_hidden=False, tensor=False, input_names=N
         yield dummy_model_input
 
 
-def load_rep_dataset(dataset_dir = None, include_hidden=False, debug=False, tensor=False, input_names=None):
+def load_rep_dataset(dataset_dir = None, include_hidden=False, debug=False, tensor=False, input_names=None, input_shape=(1,None), hidden_shape=(1,1,None)):
 
     if tensor:
         import torch
@@ -104,9 +119,16 @@ def load_rep_dataset(dataset_dir = None, include_hidden=False, debug=False, tens
             print(obsv_data_ind.shape)
         
         for i in range(N):
-            X = np.expand_dims(obsv_data[obsv_data_ind[i]],axis=1)
-            hs = np.expand_dims(np.expand_dims(hidden_data[obsv_data_ind[i]],axis=2),axis=2)
+            X = obsv_data[obsv_data_ind[i]]
+            X = X.reshape(X.shape[0],*(in_sh for in_sh in input_shape if in_sh is not None), -1)
+            #X = np.expand_dims(obsv_data[obsv_data_ind[i]],axis=1)
             
+            hs = hidden_data[obsv_data_ind[i]]
+            hs = hs.reshape(hs.shape[0], hs.shape[1], *(hs_sh for hs_sh in hidden_shape if hs_sh is not None), -1)
+            # hs = np.expand_dims(np.expand_dims(hidden_data[obsv_data_ind[i]],axis=2),axis=2)
+            
+
+
             if tensor:
                 X = torch.from_numpy(X)
                 hs = torch.from_numpy(hs)

@@ -8,7 +8,7 @@ from pycoral.adapters import classify
 from tflite_runtime.interpreter import Interpreter
 from tflite_runtime.interpreter import load_delegate
 
-from PIL import Image
+# from PIL import Image
 from pathlib import Path
 import numpy as np
 import time

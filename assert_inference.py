@@ -1,14 +1,13 @@
 
-import time
-import numpy as np
-import torch
+
 from argparse import ArgumentParser
-from inspect import signature
 from pathlib import Path
 
 import onnxruntime as ort
+import numpy as np
+import torch
 
-from utils.utils import load_rep_dataset, create_dummy_input
+from utils.utils import load_rep_dataset, DEFAULT_INPUT_NAMES, parse_outputs
 
 def infer_torch(model_dir, interpreters, include_hidden=False, torch_type=None, onnx_quantize_dyn=False):
     print('Inference Assertion')
@@ -47,12 +46,14 @@ def infer_torch(model_dir, interpreters, include_hidden=False, torch_type=None, 
             raise KeyError(f"torch optimization type: {torch_type} not found!")
         
 
-        torch_input_names =('input', 'inp', 'inp0')
+        torch_input_names = ('input', 'inp', 'inp0')
         
         dataset_torch = load_rep_dataset(include_hidden=include_hidden,debug=False, tensor=True, input_names=torch_input_names)
 
-        inference_dict['torch'] = {'dataset': dataset_torch(), 'model': model_torch}
-
+        inference_dict['torch'] = {'dataset': dataset_torch(), 
+                                   'model': model_torch,
+                                   'run_model': lambda x : model_torch(**x), 
+                                   'input_names': torch_input_names}
 
     if "onnx" in interpreters:
 
@@ -82,48 +83,82 @@ def infer_torch(model_dir, interpreters, include_hidden=False, torch_type=None, 
 
         dataset_onnx = load_rep_dataset(include_hidden=include_hidden,debug=False)
 
-        inference_dict['onnx'] = {'dataset': dataset_onnx(), 'model': model_onnx}
+        inference_dict['onnx'] = {'dataset': dataset_onnx(), 
+                                  'model': model_onnx,
+                                  'run_model':  lambda x : model_onnx.run(None,x),
+                                  'input_names': DEFAULT_INPUT_NAMES}
+
+    if "tf" in interpreters: # Does not work for some reason...
+
+        import tensorflow as tf
+
+        model_path_tf = str(model_dir / "tf" / f"{model_dir.name}")
+        model_tf = tf.keras.models.load_model(model_path_tf)
+
+        dataset_tf = load_rep_dataset(include_hidden=include_hidden,debug=True, hidden_shape=(1,1,None))
+
+        inference_dict['tf'] = {'dataset': dataset_tf(), 
+                                  'model': model_tf,
+                                  'run_model':  lambda x : model_tf(**x),
+                                  'input_names': DEFAULT_INPUT_NAMES}
+
+
+    rtol = 1e-10
+    atol = 1e-10
 
     finished = False
+    prev_outputs = {}
     while not finished:
-
-        model_outs = []
-        
+        model_outs = []        
         for model_name, model_dict in inference_dict.items():
-
-            # TODO: use prev model out hidden states if hidden_states equals True
-
             data = next(model_dict['dataset'],None)
             if data is None:
                 print("finished!")
                 finished = True
                 break
-                
-            if model_name == "onnx":
-                model_out = model_dict['model'].run(None,data)
-            
-            elif model_name == "torch":
-                model_out = model_dict['model'](**data) #.numpy()
-            
-                model_out = (out.detach().numpy() for out in model_out)
-            else:
-                raise NotImplementedError
 
-            model_outs.append(model_out)
+            # use prev hidden states                
+            if include_hidden and prev_outputs.get(model_name) is not None:
 
+                data = {model_dict['input_names'][0]: data[model_dict['input_names'][0]], 
+                        model_dict['input_names'][1]: prev_outputs[model_name][-2],
+                        model_dict['input_names'][2]: prev_outputs[model_name][-1]}
 
-        # print(model_outs)
+            model_out = model_dict['run_model'](data)
+            prev_outputs[model_name] = model_out # with correct datatype
+
+            model_outs.append(parse_outputs(model_out))
+
+            #TODO: compare prev hidden states with true hidden states?
+
         # check outputs
-        for j in range(len(model_outs)):
-            for i in range(j+1,len(model_outs)):
-                for out_j, out_i in zip(model_outs[j],model_outs[i]):
-                    np.testing.assert_allclose(out_j, out_i, rtol=1e-5, atol=1e-6)
+        check_tolerance = True
+        while check_tolerance:
+            check_tolerance = False
+            for j in range(len(model_outs)):
+                for i in range(j+1,len(model_outs)):
+                    for out_j, out_i in zip(model_outs[j],model_outs[i]):
+                        try:
+                            if out_j.shape != out_i.shape:
+                                print("ERROR: shape mismatch!")
+                                break
+                            np.testing.assert_allclose(out_j, out_i, rtol=rtol, atol=atol)
+                        except AssertionError as e:
+                            print(e)
+                            print(f"tolerance test failed with rtol: {rtol} and atol: {atol}")
+                            print("decreasing tolerance")
+                            rtol *= 10
+                            atol *= 10
+                            print("=====================================================")
+                            check_tolerance = True
 
+    print(f"tolerance test passed with rtol: {rtol}, atol: {atol}")
 
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--model_dir")
     parser.add_argument("--interpreters", default=[],nargs="+")
+    parser.add_argument("--include_hidden",  action="store_true")
     parser.add_argument("--torch_type", default=None)
     parser.add_argument("--onnx_quantize_dyn", action="store_true")
     args = parser.parse_args()

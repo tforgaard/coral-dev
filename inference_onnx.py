@@ -64,15 +64,31 @@ def infer_onnxruntime(model_path, intra_op_num_threads=1, inter_op_num_threads=1
     
     include_hidden = True if len(ort_session_input_info) == 3 else False
     
-    dummy_model_input = create_dummy_input(include_hidden=include_hidden, tensor=False)
+    #dummy_model_input = create_dummy_input(include_hidden=include_hidden, tensor=False)
 
         
-    dataset = load_rep_dataset(include_hidden=include_hidden,debug=debug)
+    #dataset = load_rep_dataset(include_hidden=include_hidden,debug=debug)
+
+    def dataset(N=10000):
+
+        input_names = ('input', 'h0', 'c0')
+
+        dummy_model_input = {input_names[0]: np.zeros((1, 273)).astype(np.float32)}
+
+        dummy_model_input = {**dummy_model_input, 
+            input_names[1]: np.zeros((1,1, 512)).astype(np.float32),
+            input_names[2]: np.zeros((1,1, 512)).astype(np.float32)}
+
+        for i in range(N):
+            yield dummy_model_input
+
+    dummy_model_input = dataset()
 
     #warm up run
     ort_outs = ort_session.run(None,next(dummy_model_input))
     # ort_outs = io_binding.copy_outputs_to_cpu()
 
+    dummy_model_input = dataset()
 
     latency = []
 

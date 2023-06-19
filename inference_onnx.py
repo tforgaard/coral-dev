@@ -27,7 +27,7 @@ def infer_onnxruntime(model_path, intra_op_num_threads=1, inter_op_num_threads=1
         model_p = Path(model_path)
         model_quant = str(model_p.parent / f'{model_p.stem}_quant.onnx')
 
-        quantized_model = quantize_dynamic(model_fp32, model_quant, weight_type=QuantType.QUInt8)
+        quantized_model = quantize_dynamic(model_fp32, model_quant, weight_type=QuantType.QInt8)
 
         model_path = model_quant
 

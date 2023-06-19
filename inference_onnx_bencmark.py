@@ -28,7 +28,7 @@ if __name__ == "__main__":
     for intra_op_num_threads in range(1,5):
         for inter_op_num_threads in range(1,5):
             for execution_mode in ['sequential', 'parallel']:
-                for quantize_dyn in [True, False]:
+                for quantize_dyn in [False]:
                     inf_time = inference_onnx.infer_onnxruntime(args.model_path,    intra_op_num_threads=intra_op_num_threads, 
                                                                                     inter_op_num_threads=inter_op_num_threads,
                                                                                     execution_mode=execution_mode,
